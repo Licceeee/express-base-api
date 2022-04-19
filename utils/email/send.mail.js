@@ -45,4 +45,4 @@ const sendEmail = async (email, subject, payload, template) => {
   }
 };
 
-module.exports = sendEmail;s
+module.exports = sendEmail;
