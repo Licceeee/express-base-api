@@ -3,15 +3,6 @@ const bcrypt = require('bcrypt');
 const { validationResult } = require('express-validator');
 const User = require('../models/user.model');
 
-// --------------------------------------------------------------------- >> GET
-exports.get_all = async (req, res) => {
-  try {
-    const allUsers = await User.find({});
-    res.json(allUsers);
-  } catch (e) {
-    res.status(500).send(e.message);
-  }
-};
 
 // ------------------------------------------------------------------ >> GET:ID
 exports.get_by_id = async (req, res) => {
