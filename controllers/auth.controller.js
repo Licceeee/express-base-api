@@ -50,10 +50,11 @@ exports.signup = async (req, res) => {
     });
 
     const token = user.createToken();
+    
     const link = `${serverUrl}/emailConfirm/${secretCode.secretCode}/${user._id}`;
     await sendEmail(
       user.email,
-      'Welcome to TMU! Please confirm your email',
+      'Welcome! Please confirm your email',
       { name: `${user.first_name} ${user.last_name} `, link },
       './template/welcome.handlebars',
     );

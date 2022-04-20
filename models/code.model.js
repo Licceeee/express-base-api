@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const { Schema } = mongoose;
 
+// code for account confirmation
 const codeSchema = new Schema({
   email: { type: String, required: true },
   secretCode: { type: String, required: true },

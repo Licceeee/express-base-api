@@ -5,7 +5,7 @@ const router = express.Router();
 const {
   validateFirstName, validateLastName, validateEmail,
   validatePassword,
-} = require('../validators');
+} = require('../utils/validators');
 
 const {
   login,

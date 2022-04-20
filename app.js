@@ -20,8 +20,8 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/api/v1', authRouter);
-app.use('/api/v1/user', userRouter);
+app.use('/v1', authRouter);
+app.use('/v1/user', userRouter);
 
 
 module.exports = app;

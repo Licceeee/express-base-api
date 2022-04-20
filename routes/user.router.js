@@ -8,7 +8,7 @@ const {
   validateLastName,
   validateEmail,
   validatePassword,
-} = require('../validators');
+} = require('../utils/validators');
 
 const {
   get_all,
