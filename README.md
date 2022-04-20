@@ -10,11 +10,16 @@ cd into dir
 install dependencies
 ```npm i```
 
-add credentials
+create .env and add credentials
 ```cp .env.sample .env; vi .env```
 
 replace api-domain.com with real domain link in index.html
 
 run with nodemon
 ```npm run dev```
+
 ```http://localhost:3030/```
+
+or 
+
+```http://localhost:<PORT>/```
