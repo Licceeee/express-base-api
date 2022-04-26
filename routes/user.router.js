@@ -2,6 +2,7 @@
 const express = require('express');
 
 const router = express.Router();
+const authorize = require('../middlewares/authotizeUser')
 
 const {
   validateFirstName,
@@ -17,8 +18,8 @@ const {
   update_password,
 } = require('../controllers/user.controller');
 
-router.get('/me', me)
-router.get('/:id', get_by_id);
+router.get('/me', authorize, me)
+router.get('/:id', authorize, get_by_id);
 router.put('/changePassword', [validatePassword], update_password);
 router.put(
   '/:id',
