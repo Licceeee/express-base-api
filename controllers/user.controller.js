@@ -1,29 +1,32 @@
 /* eslint-disable camelcase */
-const bcrypt = require('bcrypt');
-const { validationResult } = require('express-validator');
-const User = require('../models/user.model');
-const Token = require('../models/token.model')
+const bcrypt = require("bcrypt");
+const { validationResult } = require("express-validator");
+const User = require("../models/user.model");
+const Token = require("../models/token.model");
 
 // ------------------------------------------------------------------ >> GET:ME
 exports.me = async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.redirect(clientURL);
 
-  const token = req.session;
-  console.log(req)
-  return res.json(req);
-  // try {
-  //   const meToken = await Token.findOne(token);
-  //   if (!meToken) {
-  //     return res.status(404).send({
-  //       msg: 'Entry not found',
-  //       param: 'error',
-  //     });
-  //   }
-  //   return res.json(meToken);
-  // } catch (e) {
-  //   return res.status(500).send(e.message);
-  // }
+  const [bearer, token] = authHeader.split(" ");
+  if (!token) return res.status(401).send("Access denied");
+
+  try {
+    const meToken = await Token.findOne({ token });
+    if (!meToken) {
+      return res.status(404).send({
+        msg: "Entry not found",
+        param: "error",
+      });
+    }
+    const user = await User.findById({ _id: meToken.userId });
+
+    return res.json({ user });
+  } catch (e) {
+    return res.status(500).send(e.message);
+  }
 };
-
 
 // ------------------------------------------------------------------ >> GET:ID
 exports.get_by_id = async (req, res) => {
@@ -32,8 +35,8 @@ exports.get_by_id = async (req, res) => {
     const targetUser = await User.findById(id);
     if (!targetUser) {
       return res.status(404).send({
-        msg: 'Entry not found',
-        param: 'error',
+        msg: "Entry not found",
+        param: "error",
       });
     }
     return res.json(targetUser);
@@ -45,9 +48,7 @@ exports.get_by_id = async (req, res) => {
 // ------------------------------------------------------------------ >> PUT:ID
 exports.update = async (req, res) => {
   const { id } = req.params;
-  const {
-    first_name, last_name, email,
-  } = req.body;
+  const { first_name, last_name, email } = req.body;
 
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -65,7 +66,7 @@ exports.update = async (req, res) => {
     });
     return res.json({
       obj: updatedObj,
-      msg: 'User update successful',
+      msg: "User update successful",
     });
   } catch (e) {
     return res.status(500).send(e.message);
@@ -86,8 +87,8 @@ exports.update_password = async (req, res) => {
 
   if (!match) {
     return res.status(400).send({
-      msg: 'Invalid Credentials',
-      param: 'error',
+      msg: "Invalid Credentials",
+      param: "error",
     });
   }
 
@@ -96,11 +97,11 @@ exports.update_password = async (req, res) => {
   try {
     user.password = encryptedPassword;
     await user.save();
-    return res.json('Password updates successfully');
+    return res.json("Password updates successfully");
   } catch (e) {
     return res.status(500).send({
       msg: e.message,
-      param: 'error',
+      param: "error",
     });
   }
 };

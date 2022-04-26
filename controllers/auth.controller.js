@@ -11,7 +11,10 @@ const User = require("../models/user.model");
 const Token = require("../models/token.model");
 const Code = require("../models/code.model");
 
-const { sendAccountConfirmationMail, createToken } = require("../utils/general");
+const {
+  sendAccountConfirmationMail,
+  createToken,
+} = require("../utils/general");
 
 // -------------------- SIGN UP --------------------------------------- >> POST
 exports.signup = async (req, res) => {
@@ -114,11 +117,11 @@ exports.login = async (req, res) => {
     });
   }
 
-  // TODO comment out if (!user.active) {
+  // if (!user.active) {
   //   return res.status(400).send({
   //     msg: {
   //       msg: "Please confirm your email in order to be able to login",
-  //       link:  `${clientUrl}/resent/email/confirm`
+  //       link: `${clientURL}/resent/email/confirm`,
   //     },
   //     param: "error",
   //   });
@@ -126,10 +129,9 @@ exports.login = async (req, res) => {
 
   const usertoken = await createToken(user);
 
-  return res.set("x-authorization-token", usertoken.token).send({
-    token: usertoken.token,
-    msg: "Logged in successfully",
-  });
+  return res
+    .set("x-authorization-token", usertoken.token)
+    .send("Logged in successfully");
 };
 
 // -------------------- PASSWORD REQUEST ------------------------ >> POST
