@@ -1,24 +1,21 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable camelcase */
-const bcrypt = require('bcrypt');
-const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
-const { validationResult } = require('express-validator');
+const bcrypt = require("bcrypt");
+const { validationResult } = require("express-validator");
 
 const clientURL = process.env.CLIENT_URL;
-const serverUrl = process.env.SERVER_PROD_URL; // TODO change this
 
-const sendEmail = require('../utils/email/send.mail');
+const sendEmail = require("../utils/email/send.mail");
 
-const User = require('../models/user.model');
-const Token = require('../models/token.model');
-const Code = require('../models/code.model');
+const User = require("../models/user.model");
+const Token = require("../models/token.model");
+const Code = require("../models/code.model");
+
+const { sendAccountConfirmationMail, createToken } = require("../utils/general");
 
 // -------------------- SIGN UP --------------------------------------- >> POST
 exports.signup = async (req, res) => {
-  const {
-    first_name, last_name, email, password,
-  } = req.body;
+  const { first_name, last_name, email, password } = req.body;
 
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -29,8 +26,8 @@ exports.signup = async (req, res) => {
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).send({
-        msg: 'User already exists',
-        param: 'error',
+        msg: "User already exists",
+        param: "error",
       });
     }
 
@@ -44,30 +41,16 @@ exports.signup = async (req, res) => {
       password: encryptedPassword,
     });
 
-    const secretCode = await Code.create({
-      secretCode: await bcrypt.hash(uuidv4().toString(), 10),
-      email,
-    });
+    const emailStatus = await sendAccountConfirmationMail(email);
 
-    const token = user.createToken();
-    
-    const link = `${serverUrl}/emailConfirm/${secretCode.secretCode}/${user._id}`;
-    await sendEmail(
-      user.email,
-      'Welcome! Please confirm your email',
-      { name: `${user.first_name} ${user.last_name} `, link },
-      './template/welcome.handlebars',
-    );
-
-    return res.set('x-authorization-token', token).send({
-      userId: user._id,
-      email: user.email,
-      name: `${user.first_name} ${user.last_name} `,
-      active: user.active,
-      token,
-      link,
-      secretCode,
-    });
+    emailStatus.success
+      ? res.json({
+          email: user.email,
+          name: `${user.first_name} ${user.last_name} `,
+          active: user.active,
+          emailStatus,
+        })
+      : res.json(emailStatus.msg);
   } catch (e) {
     return res.status(500).send(e.message);
   }
@@ -81,15 +64,34 @@ exports.emailConfirm = async (req, res) => {
   const code = await Code.findOne({ email: user.email });
   if (code.secretCode !== secretCode) {
     return res.status(400).send({
-      msg: 'Cannot verify account',
-      param: 'error',
+      msg: "Cannot verify account",
+      param: "error",
     });
   }
-  if (user.active) return res.json('already active');
+  if (user.active) return res.json("already active");
 
   user.active = true;
   await user.save();
   return res.redirect(clientURL);
+};
+
+// -------------------- RESENT ACCOUNT ACTIVATION MAIL ---------------- >> POST
+exports.resentEmailConfirm = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const emailStatus = await sendAccountConfirmationMail(email);
+    emailStatus.success
+      ? res.json({
+          email: user.email,
+          name: `${user.first_name} ${user.last_name} `,
+          active: user.active,
+          emailStatus,
+        })
+      : res.json(emailStatus.msg);
+  } catch (e) {
+    return res.status(500).send(e.message);
+  }
 };
 
 // -------------------- LOGIN ----------------------------------------- >> POST
@@ -99,22 +101,35 @@ exports.login = async (req, res) => {
   const user = await User.findOne({ email });
   if (!user) {
     return res.status(400).send({
-      msg: 'Invalid Credentials',
-      param: 'error',
+      msg: "Invalid Credentials",
+      param: "error",
     });
   }
 
   const match = await bcrypt.compare(password, user.password);
   if (!match) {
     return res.status(400).send({
-      msg: 'Invalid Credentials',
-      param: 'error',
+      msg: "Invalid Credentials",
+      param: "error",
     });
   }
 
-  const token = user.createToken();
+  // TODO comment out if (!user.active) {
+  //   return res.status(400).send({
+  //     msg: {
+  //       msg: "Please confirm your email in order to be able to login",
+  //       link:  `${clientUrl}/resent/email/confirm`
+  //     },
+  //     param: "error",
+  //   });
+  // }
 
-  return res.set('x-authorization-token', token).send('Logged in successfully');
+  const usertoken = await createToken(user);
+
+  return res.set("x-authorization-token", usertoken.token).send({
+    token: usertoken.token,
+    msg: "Logged in successfully",
+  });
 };
 
 // -------------------- PASSWORD REQUEST ------------------------ >> POST
@@ -130,32 +145,23 @@ exports.resetPasswordRequest = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).send({
-        msg: 'User does not exist',
-        param: 'error',
+        msg: "User does not exist",
+        param: "error",
       });
     }
 
-    const token = await Token.findOne({ userId: user._id });
-    if (token) await token.deleteOne();
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const hash = await bcrypt.hash(resetToken, 10);
+    const userToken = await createToken(user);
 
-    await Token.create({
-      userId: user._id,
-      token: hash,
-      createdAt: Date.now(),
-    });
-
-    const url = `${clientURL}/reset/password/${user._id}/${resetToken}`;
+    const url = `${clientURL}/reset/password/${user._id}/${userToken.token}`;
     sendEmail(
       user.email,
-      'Password Reset Request',
+      "Password Reset Request",
       {
         name: `${user.first_name} ${user.last_name} `,
         link: url,
         email: user.email,
       },
-      './template/requestResetPassword.handlebars',
+      "./template/requestResetPassword.handlebars"
     );
 
     return res.json({
@@ -181,16 +187,16 @@ exports.resetPassword = async (req, res) => {
   const passwordResetToken = await Token.findOne({ userId });
   if (!passwordResetToken) {
     return res.status(400).send({
-      msg: 'Invalid or expired password reset token',
-      param: 'error',
+      msg: "Invalid or expired password reset token",
+      param: "error",
     });
   }
 
   const isValid = await bcrypt.compare(token, passwordResetToken.token);
   if (!isValid) {
     return res.status(400).send({
-      msg: 'Invalid or expired password reset token',
-      param: 'error',
+      msg: "Invalid or expired password reset token",
+      param: "error",
     });
   }
 
@@ -198,24 +204,24 @@ exports.resetPassword = async (req, res) => {
   await User.updateOne(
     { _id: userId },
     { $set: { password: hash } },
-    { new: true },
+    { new: true }
   );
   const user = await User.findById({ _id: userId });
   if (!user) {
     return res.status(400).send({
-      msg: 'User does not exist',
-      param: 'error',
+      msg: "User does not exist",
+      param: "error",
     });
   }
 
   sendEmail(
     user.email,
-    'Password succesfully updated',
+    "Password succesfully updated",
     {
       name: `${user.first_name} ${user.last_name} `,
     },
-    './template/resetPassword.handlebars',
+    "./template/resetPassword.handlebars"
   );
   await passwordResetToken.deleteOne();
-  return res.json('Password succesfully updated');
+  return res.json("Password succesfully updated");
 };

@@ -11,12 +11,14 @@ const {
   login,
   signup,
   emailConfirm,
+  resentEmailConfirm,
   resetPasswordRequest,
   resetPassword,
 } = require('../controllers/auth.controller');
 
 router.post('/signup', [validateFirstName, validateLastName, validatePassword,
   validateEmail], signup);
+router.post('/resentEmailConfirm', [validateEmail], resentEmailConfirm)
 router.post('/login', login);
 router.get('/emailConfirm/:secretCode/:userId', emailConfirm);
 router.post('/resetPasswordRequest', [validateEmail], resetPasswordRequest);
