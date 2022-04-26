@@ -32,14 +32,19 @@ exports.me = async (req, res) => {
 exports.get_by_id = async (req, res) => {
   const { id } = req.params;
   try {
-    const targetUser = await User.findById(id);
-    if (!targetUser) {
+    const user = await User.findById(id);
+    if (!user) {
       return res.status(404).send({
         msg: "Entry not found",
         param: "error",
       });
     }
-    return res.json(targetUser);
+
+    return res.json({
+      first_name: user.first_name,
+      last_name: user.last_name,
+      created_at: user.createdAt
+    });
   } catch (e) {
     return res.status(500).send(e.message);
   }
