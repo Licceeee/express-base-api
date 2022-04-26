@@ -2,6 +2,27 @@
 const bcrypt = require('bcrypt');
 const { validationResult } = require('express-validator');
 const User = require('../models/user.model');
+const Token = require('../models/token.model')
+
+// ------------------------------------------------------------------ >> GET:ME
+exports.me = async (req, res) => {
+
+  const token = req.session;
+  console.log(req)
+  return res.json(req);
+  // try {
+  //   const meToken = await Token.findOne(token);
+  //   if (!meToken) {
+  //     return res.status(404).send({
+  //       msg: 'Entry not found',
+  //       param: 'error',
+  //     });
+  //   }
+  //   return res.json(meToken);
+  // } catch (e) {
+  //   return res.status(500).send(e.message);
+  // }
+};
 
 
 // ------------------------------------------------------------------ >> GET:ID

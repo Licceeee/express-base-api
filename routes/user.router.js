@@ -11,13 +11,14 @@ const {
 } = require('../utils/validators');
 
 const {
+  me,
   get_by_id,
   update,
   update_password,
 } = require('../controllers/user.controller');
 
+router.get('/me', me)
 router.get('/:id', get_by_id);
-
 router.put('/changePassword', [validatePassword], update_password);
 router.put(
   '/:id',
